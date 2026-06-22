@@ -15,12 +15,12 @@ from pydub import AudioSegment
 AudioSegment.converter = get_ffmpeg_exe()
 
 # ================= CONFIGURAÇÃO OPERACIONAL =================
-ELEVEN_API_KEY = "sk_cb298e1a0289f657650999ce93267228f63a40773964b8ca"
+ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY", "your_eleven_api_key_here")
 JARVIS_VOICE_ID = "gvLz73B6mpicDP3zbCkU"
 WAKE_WORD = "jarvis"
 
 # Configuração do Gemini
-GEMINI_API_KEY = "AQ.Ab8RN6JN9FdJezLToO9KOllp-BGPUuMTt9TreJMXE81afiACog"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your_gemini_api_key_here")
 genai.configure(api_key=GEMINI_API_KEY)
 
 ARQUIVO_AUDIO = os.path.join(tempfile.gettempdir(), "jarvis_final_response.mp3")
