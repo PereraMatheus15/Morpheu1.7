@@ -1,63 +1,94 @@
 🌌 Morpheu - Assistente Pessoal Multimodal
-Um assistente pessoal inteligente e de baixa latência, acionado por voz (usando wake word), projetado para rodar nativamente no Windows sem complicações de compilação. O projeto é integrado aos modelos mais recentes da Google e utiliza síntese de voz natural.
 
-🚀 Funcionalidades Principais
-🎧 Escuta Contínua e Wake Word: Fica em modo de espera aguardando a palavra "assistente". Após a ativação, aguarda um comando por voz e retorna ao modo de espera ao terminar.
+O Morpheu é um assistente pessoal inteligente acionado por voz, desenvolvido para Windows e projetado para operar com baixa latência, reconhecimento de fala local e respostas geradas por IA de última geração.
 
-⚡ Reconhecimento de Voz Local: Utiliza Faster-Whisper em CPU para transcrever português brasileiro localmente, sem enviar o áudio a uma API de reconhecimento.
+Seu objetivo é oferecer uma experiência fluida e natural, mantendo a privacidade do usuário ao realizar a transcrição de voz localmente e utilizando os modelos Gemini da Google para compreensão e geração de respostas.
 
-🎙️ Captação de Áudio Nativa: Utiliza sounddevice e numpy para capturar áudio mono a 16 kHz diretamente do microfone.
+🚀 Principais Recursos
+🎧 Escuta Contínua com Wake Word
 
-🧠 Inteligência Multimodal Avançada: Processa os áudios e comandos utilizando o modelo Gemini 2.5 Flash da Google, garantindo respostas rápidas, contextuais e precisas.
+Permanece em modo de espera aguardando a palavra de ativação "assistente". Após a detecção, escuta o comando do usuário, processa a solicitação e retorna automaticamente ao modo de espera.
 
-🗣️ Voz Natural e Fluida: Usa Edge-TTS e, se o serviço estiver indisponível, tenta a síntese local do Windows (SAPI).
+⚡ Reconhecimento de Voz Local
 
-🛠️ Tecnologias e Bibliotecas Utilizadas
-Linguagem: Python 3.13+ (validado neste ambiente com Python 3.14)
+Utiliza Faster-Whisper executado localmente na CPU para transcrever áudio em português brasileiro, sem dependência de APIs externas de reconhecimento de fala.
 
-IA & Processamento: google-genai (Gemini API)
+🎙️ Captura de Áudio Nativa
 
-Áudio (Captação e Reconhecimento): sounddevice, numpy, Faster-Whisper
+Captação direta do microfone utilizando:
 
-Voz (TTS): edge-tts, pygame (pygame-ce no Python 3.14+), Windows SAPI como fallback local
+sounddevice
+numpy
 
-Gerenciamento de Eventos: Arquitetura modular e assíncrona
+Configuração padrão:
 
-⚙️ Configuração e Execução
-1. Requisitos e Instalação
-Certifique-se de estar utilizando um ambiente virtual (.venv) e instale as dependências necessárias:
+Mono
+16 kHz
+Baixa latência
+🧠 Inteligência Artificial Multimodal
 
+Processa comandos utilizando o Gemini 2.5 Flash, fornecendo respostas rápidas, contextualizadas e precisas.
+
+🗣️ Síntese de Voz Natural
+
+Prioriza a geração de voz através do Edge-TTS e utiliza automaticamente a síntese nativa do Windows (SAPI) como alternativa quando necessário.
+
+🛠️ Tecnologias Utilizadas
+Linguagem
+Python 3.13+
+Inteligência Artificial
+google-genai (Gemini API)
+Captura e Reconhecimento de Voz
+Faster-Whisper
+sounddevice
+numpy
+Síntese de Voz
+edge-tts
+pygame / pygame-ce
+Windows SAPI
+Arquitetura
+Programação assíncrona
+Sistema modular baseado em eventos
+⚙️ Instalação
+1. Criar e ativar ambiente virtual
+PowerShell
+python -m venv .venv
+.\.venv\Scripts\activate
+2. Instalar dependências
 PowerShell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-2. Variáveis de Ambiente
-O reconhecimento de voz é local depois do download inicial do modelo Faster-Whisper. Para perguntas encaminhadas à IA, configure uma chave válida do Gemini em `GEMINI_API_KEY` no ambiente ou no `.env` da raiz do projeto; valores de exemplo/placeholder são ignorados. A variável definida no ambiente tem precedência. Comandos locais e estáticos continuam disponíveis sem uma chave válida.
+🔑 Configuração da API Gemini
 
-Defina a sua chave de API do Gemini no terminal antes de rodar o assistente:
-
-No PowerShell:
+Defina sua chave da API através da variável de ambiente:
 
 PowerShell
-$env:GEMINI_API_KEY="sua-api-key-aqui"
-No Prompt de Comando (CMD):
+PowerShell
+$env:GEMINI_API_KEY="sua-api-key"
+CMD
+BAT
+set GEMINI_API_KEY=sua-api-key
 
-DOS
-set GEMINI_API_KEY=sua-api-key-aqui
-3. Iniciando o Sistema
-Execute o script principal:
+Também é possível configurar a variável em um arquivo .env na raiz do projeto.
 
+A variável definida no ambiente possui prioridade sobre o arquivo .env.
+
+▶️ Executando o Assistente
 PowerShell
 .\.venv\Scripts\python.exe main.py
-
-Para executar os testes simulados do Listener, sem usar o microfone:
-
+🧪 Executando os Testes
 PowerShell
 .\.venv\Scripts\python.exe -m unittest -v test_listener test_local_ops test_cognition test_tts
-
-Para testar a geração de "Estou ouvindo." pelo Edge-TTS (com fallback SAPI no Windows), sem reproduzir o áudio:
-
+Teste do Sistema de Voz
 PowerShell
 .\.venv\Scripts\python.exe tts_smoke_test.py
 📌 Status do Projeto
-Atualmente na versão 1.0 (v1.py), com o subsistema de escuta ativa e processamento multimodal reestruturados para máxima eficiência e compatibilidade.
 
-Sinta-se à vontade para abrir issues ou enviar pull requests para contribuir com o projeto, Senhor.
+Versão atual: 1.0
+
+A arquitetura foi reestruturada para maximizar desempenho, estabilidade e compatibilidade com versões recentes do Python e do Windows.
+
+🤝 Contribuição
+
+Contribuições são bem-vindas.
+
+Sinta-se à vontade para abrir Issues, enviar Pull Requests ou sugerir novas funcionalidades para o Morpheu.
