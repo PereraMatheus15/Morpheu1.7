@@ -1,4 +1,4 @@
-import os
+from typing import Optional
 
 from dotenv import load_dotenv
 from google import genai
@@ -34,15 +34,37 @@ SYSTEM_PROMPT = (
 
 
 class Cognition:
-    def __init__(self, gemini_api_key: str) -> None:
-        if not gemini_api_key:
-            raise ValueError("Variável de ambiente GEMINI_API_KEY não encontrada.")
+    def __init__(self, gemini_api_key: Optional[str]) -> None:
+        key = (gemini_api_key or "").strip()
+        if self._is_placeholder_key(key):
+            key = ""
 
-        self.ai_client = genai.Client(api_key=gemini_api_key)
+        self.ai_client = genai.Client(api_key=key) if key else None
 
         # Memória de conversa (lista de mensagens role/text)
         self.chat_history: list[dict[str, str]] = []
         self.max_history_messages = 20
+
+    @staticmethod
+    def _is_placeholder_key(key: str) -> bool:
+        normalized = key.casefold()
+        return any(
+            marker in normalized
+            for marker in ("your_", "placeholder", "replace", "example", "changeme")
+        )
+
+    @staticmethod
+    def _is_authentication_error(exc: Exception) -> bool:
+        details = str(exc).casefold()
+        return any(
+            marker in details
+            for marker in (
+                "api_key_invalid",
+                "api key not valid",
+                "invalid api key",
+                "unauthenticated",
+            )
+        )
 
     def _add_history(self, role: str, text: str) -> None:
         self.chat_history.append({"role": role, "text": text})
@@ -89,19 +111,27 @@ class Cognition:
         if not pergunta:
             return "Não recebi nenhuma pergunta, Senhor."
 
+        if self.ai_client is None:
+            logger.warning(
+                "Gemini indisponível: configure uma chave válida em GEMINI_API_KEY."
+            )
+            return (
+                "A inteligência Gemini está indisponível. "
+                "Configure uma chave válida em GEMINI_API_KEY, Senhor."
+            )
+
         prompt = self._build_prompt(pergunta)
 
         try:
             logger.info(f"Pergunta ao Gemini: {pergunta}")
-            logger.info(f"Prompt enviado:\n{prompt}")
 
             response = self.ai_client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
                     temperature=0.7,
-                    max_output_tokens=300,
+                    max_output_tokens=1024,
                 ),
             )
 
@@ -129,8 +159,19 @@ class Cognition:
             return "Não consegui formular uma resposta adequada, Senhor."
 
         except Exception as exc:
-            logger.error(f"Erro Gemini: {exc}", exc_info=True)
-            return (
-                "Estou enfrentando um problema temporário "
-                "nos meus módulos cognitivos, Senhor."
-            )
+            if self._is_authentication_error(exc):
+                logger.error(
+                    "Autenticação Gemini recusada; verifique GEMINI_API_KEY."
+                )
+                return (
+                    "A chave de autenticação do Gemini foi recusada. "
+                    "Verifique GEMINI_API_KEY, Senhor."
+                )
+
+            status_code = getattr(exc, "code", None)
+
+            logger.error(
+                    "Erro Gemini: tipo=%s, status=%s",
+     type(exc).__name__,
+            status_code,
+)

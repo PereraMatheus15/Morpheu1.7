@@ -1,7 +1,6 @@
 ﻿import os
 import queue
 import subprocess
-import sys
 import time
 import webbrowser
 from typing import Optional
@@ -16,10 +15,9 @@ from local_ops import executar_comando_local
 
 load_dotenv()
 
-ELEVEN_API_KEY = os.environ.get("ELEVEN_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-WAKE_WORD = "morpheu"
+WAKE_WORD = "assistente"
 JARVIS_VOICE_ID = "gvLz73B6mpicDP3zbCkU"
 
 
@@ -69,97 +67,90 @@ def processar_comandos(comando: str, engine: AudioEngine, brain: Cognition, auto
 
 
 def main() -> None:
-    if not ELEVEN_API_KEY or not GEMINI_API_KEY:
-        logger.error("Erro: as variáveis de ambiente ELEVEN_API_KEY e GEMINI_API_KEY devem estar definidas.")
-        sys.exit(1)
-
     command_queue: queue.Queue[dict[str, str]] = queue.Queue()
     cognition = Cognition(GEMINI_API_KEY)
+    listener = Listener(command_queue, wake_word=WAKE_WORD, energy_threshold=400)
     audio_engine = AudioEngine()
-    listener = Listener(command_queue, wake_word=WAKE_WORD, energy_threshold=250)
     
     # Inicializa o mecanismo de automação integrado
     automation = AutomationEngine()
 
-    # audio_engine.start()
-    listener.start()
-
-    logger.info("Sistema iniciado")
-    audio_engine.enqueue_text(
-        "Sistemas online, Senhor Almeida. Estou pronto para receber comandos."
-    )
-
     try:
+        logger.info("Sistema iniciado")
+        audio_engine.enqueue_text(
+            "Sistemas online, Senhor Almeida. Estou pronto para receber comandos."
+        )
+        audio_engine.queue.join()
+        listener.start()
+        logger.info("Aguardando palavra de ativação.")
+
         while True:
-            logger.info("Loop principal ativo")
-            logger.info(f"Aguardando comando na fila (size={command_queue.qsize()})")
-            
             try:
-                # 1. Aguarda o comando chegar da fila (com timeout para não travar)
                 item = command_queue.get(timeout=0.5)
             except queue.Empty:
                 continue
 
-            logger.info(f"Comando recebido da fila: {item}")
-            if item.get("type") != "wake":
-                continue
+            should_exit = False
+            try:
+                logger.info(f"Evento recebido da fila: {item}")
+                item_type = item.get("type")
 
-            # 2. Extrai e limpa o comando bruto
-            raw_command = item.get("text", "").lower()
-            logger.info(f"Comando bruto: {raw_command}")
-            
-            # Corta a fala atual imediatamente ao ouvir o próprio nome
-            audio_engine.interrupt()
+                if item_type == "wake":
+                    logger.info("Morpheu: Estou ouvindo.")
+                    audio_engine.enqueue_text("Estou ouvindo.")
+                    audio_engine.queue.join()
+                    listener.resume_after_audio()
+                    continue
 
-            clean_command = raw_command.replace(WAKE_WORD, "").strip()
-            
-            # 3. Se ouviu apenas "Morpheu" e não disse mais nada
-            if not clean_command:
-                audio_engine.enqueue_text("Sim, Senhor Almeida? Estou ouvindo.")
-                logger.info("Texto enviado ao AudioEngine: resposta vazia de wake word")
-                continue
+                if item_type != "command":
+                    continue
 
-            # ==========================================
-            # FLUXO DE DECISÃO UNIFICADO E HIERÁRQUICO
-            # ==========================================
-            
-            # 1º Passo: Tenta executar no Windows (local_ops.py)
-            resposta_local = executar_comando_local(clean_command)
-            
-            if resposta_local:
-                logger.info(f"Ação local executada: {resposta_local}")
-                audio_engine.enqueue_text(resposta_local)
-                continue  # Pula para a próxima iteração
-            
-            # 2º Passo: Tenta os comandos estáticos (pesquisa web, hora exata, configurações)
-            resultado_estatico = processar_comandos(clean_command, audio_engine, cognition, automation)
-            
-            if resultado_estatico is False:
-                # Se a função retornar False propositalmente para desligar (ex: "encerrar sistema")
-                logger.info("Comando de encerramento detectado")
+                clean_command = item.get("text", "").lower().strip()
+                if not clean_command:
+                    logger.warning("Comando vazio ignorado.")
+                    listener.resume_after_audio()
+                    continue
+
+                logger.info(f"Comando reconhecido: {clean_command}")
+                resposta_local = executar_comando_local(clean_command)
+
+                if resposta_local:
+                    logger.info(f"Ação local executada: {resposta_local}")
+                    audio_engine.enqueue_text(resposta_local)
+                else:
+                    resultado_estatico = processar_comandos(
+                        clean_command,
+                        audio_engine,
+                        cognition,
+                        automation,
+                    )
+
+                    if resultado_estatico is False:
+                        logger.info("Comando de encerramento detectado")
+                        audio_engine.queue.join()
+                        should_exit = True
+                    elif resultado_estatico is None:
+                        logger.info("Enviando pergunta para Cognition")
+                        resposta = cognition.ask(clean_command)
+                        logger.info(f"Resposta recebida da Cognition: {resposta}")
+                        audio_engine.enqueue_text(resposta)
+
+                if not should_exit:
+                    audio_engine.queue.join()
+                    listener.resume_after_audio()
+            finally:
+                command_queue.task_done()
+
+            if should_exit:
                 break
-                
-            if resultado_estatico is True:
-                # O comando estático foi processado com sucesso
-                logger.info("Comando estático processado")
-                continue
-
-            # 3º Passo: Se não for ação local nem comando estático, envia para a IA conversar
-            logger.info("Enviando pergunta para Cognition")
-            resposta = cognition.ask(clean_command)
-            logger.info(f"Resposta recebida da Cognition: {resposta}")
-            audio_engine.enqueue_text(resposta)
-            logger.info("Texto enviado ao AudioEngine")
 
     except KeyboardInterrupt:
         logger.info("Encerrando por KeyboardInterrupt")
+
     finally:
         listener.stop()
-        audio_engine.interrupt()
-        # Certifique-se de que o método stop() existe no seu audio_engine ou remova a linha abaixo
-        if hasattr(audio_engine, 'stop'):
-            audio_engine.stop()
-        listener.join(timeout=2.0)
+        listener.join()
+        audio_engine.shutdown()
 
 if __name__ == "__main__":
     main()

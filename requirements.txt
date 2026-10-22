@@ -1,0 +1,9 @@
+edge-tts>=7.3.1
+faster-whisper
+google-genai
+numpy
+pygame-ce; python_version >= "3.14"
+pygame>=2.6.1; python_version < "3.14"
+pyautogui
+python-dotenv
+sounddevice

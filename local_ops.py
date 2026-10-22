@@ -5,8 +5,23 @@ def executar_comando_local(comando: str) -> str:
     comando = comando.lower().strip()
 
     # Módulo de Abertura de Programas
-    if comando.startswith("abrir ") or comando.startswith("iniciar "):
-        alvo = comando.replace("abrir ", "").replace("iniciar ", "").strip()
+    prefixo = next(
+        (
+            prefix
+            for prefix in ("abrir ", "iniciar ", "abra ", "abre ")
+            if comando.startswith(prefix)
+        ),
+        None,
+    )
+
+    if prefixo:
+        alvo = comando[len(prefixo):].strip(" .,!?;:")
+        palavras = alvo.split()
+        if palavras and palavras[0] in {"o", "a", "os", "as"}:
+            alvo = " ".join(palavras[1:])
+
+        if alvo in {"youtube", "configuração", "configurações"}:
+            return ""
         
         # Dicionário de atalhos para facilitar o reconhecimento
         atalhos = {

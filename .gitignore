@@ -86,3 +86,20 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Credenciais e chaves privadas
+.env
+.env.*
+!.env.example
+
+# Ambiente virtual
+.venv/
+.venv313/
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+models/
